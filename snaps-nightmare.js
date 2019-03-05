@@ -4,18 +4,18 @@ var admin 		= require('firebase-admin');
 const Nightmare = require('nightmare')
 
 const UUID = require("uuid-v4");
-
-var serviceAccount = require('./snapspress-a5592-firebase-adminsdk-oifgh-eab6d916eb.json');
+const serviceAccount = require('./snapspress-a5592-firebase-adminsdk-oifgh-eab6d916eb.json');
 
 // firebase config
 const firebaseConfig = {
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://snapspress-a5592.firebaseio.com",
   storageBucket: "snapspress-a5592.appspot.com",  
+  timestampsInSnapshots: true,
 };
 
 
-console.log("SnapsPress 2018 - Snaps Maker Tool");
+console.log("SnapsPress 2019 - Snaps Maker Tool");
 
 console.log(`
 
@@ -36,6 +36,7 @@ console.log("Initializing...");
 console.log("Connecting to Firebase ...");
 admin.initializeApp(firebaseConfig);
 var bucket = admin.storage().bucket();
+console.log('Current working directory', process.cwd());
 
 var snapName = function(source, size = false) {
 	const sz = (size) ? '-' + size : '';
@@ -44,7 +45,7 @@ var snapName = function(source, size = false) {
 
 var snapPath = function(source, size = false) {
 	const fileName = snapName(source, size); 
-	return '/tmp/' + fileName;	
+	return `${process.cwd()}/${fileName}`;	
 }
 
 var upload2Firebase = (source, size) => {
@@ -70,16 +71,18 @@ var upload2Firebase = (source, size) => {
 
 function snapSource (source) {
 
+    console.log(source);
     const path = snapPath(source);
+    console.log(path);
     var result = false;
     var nightmare = Nightmare({ show: false });
 
     return nightmare
     .viewport(1024,2500)
     .goto(source.link)
-    .evaluate(function() { 
+    .evaluate(function() {
+        console.log('evaluate');
         var s = document.styleSheets[0];
-
         try {
           s.insertRule('::-webkit-scrollbar { display:none; }');
         } catch (e) {
@@ -92,6 +95,7 @@ function snapSource (source) {
     .then(() => {
        // Generate thumbnails and crops
        const pathR = snapPath(source, '500x603');
+       console.log(pathR);
        sharp(path)
        .background({r: 255, g: 255, b: 255, alpha: 1})
        .flatten(true)
@@ -158,50 +162,20 @@ function snapSource (source) {
     .catch((err) => {
       console.log(err);
     });
-
-    /*
-    // Generate thumbnails and crops
-    const pathR = snapPath(source, '522x625');
-    await sharp(path).resize(522, 625).crop(sharp.gravity.north).toFile(pathR);
-    console.log(source.name + " resized!");	    
-    
-    // Upload to firebase storage
-    const result = await upload2Firebase(source);
-    console.log(source.name + " uploaded to firebase storage!");
-
-   	// Update to firebase firestore
-   	let db = admin.firestore();
-   	let date = moment().format('YYYYMMDD');
-   	let docRef = db.collection("sources/").doc(source.id);
-  	var setSnap = docRef.set({
-  		snaps : {
-  			null : 	{
-  				link: result,
-  	    			date: moment().format('X')
-  	    		},
-                          "last" :        {
-                                  link: result,
-                          	date: moment().format('X')
-                  	}	
-  		}
-  	},{ merge: true });
-
-    console.log("Firestore collection: `sources/"+source.id+"/snaps` updated!");
-    return result;
-
-  */
 }
 
 async function snapSources(sources){
   for (var doc of sources) {
     await snapSource(doc);
-    console.log(doc);
   }
 }
 
 function snaps() {
 
   let db = admin.firestore();
+  const settings = {timestampsInSnapshots: true};
+  db.settings(settings);
+
   db.collection('sources').get()
       .then((snapshot) => {
           var item = {};
@@ -210,7 +184,8 @@ function snaps() {
             item = doc.data();
             item.id = doc.id;
             sources.push(item);
-          });        
+          });
+          console.log(sources);        
           snapSources(sources);
       })
       .catch((err) => {
