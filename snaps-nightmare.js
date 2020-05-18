@@ -45,7 +45,7 @@ var snapName = function (source, size = false) {
 
 var snapPath = function (source, size = false) {
   const fileName = snapName(source, size);
-  return `${process.cwd()}/${fileName}`;
+  return `${process.cwd()}/snaps/${fileName}`;
 }
 
 var upload2Firebase = (source, size) => {
@@ -74,15 +74,14 @@ function snapSource(source) {
   console.log(source);
   const path = snapPath(source);
   console.log(path);
-  var result = false;
-  var nightmare = Nightmare({ show: false });
+  let result = false;
+  const nightmare = Nightmare({ show: false });
 
   return nightmare
-    .viewport(1024, 2500)
+    .viewport(1024, 1800)
     .goto(source.link)
     .evaluate(function () {
-      console.log('evaluate');
-      var s = document.styleSheets[0];
+      const s = document.styleSheets[0];
       try {
         s.insertRule('::-webkit-scrollbar { display:none; }');
       } catch (e) {
@@ -152,16 +151,15 @@ async function snapSources(sources) {
 
 function snaps() {
 
-  let db = admin.firestore();
+  const db = admin.firestore();
   const settings = { timestampsInSnapshots: true };
   db.settings(settings);
 
   db.collection('sources').get()
     .then((snapshot) => {
-      var item = {};
-      var sources = new Array();
+      const sources = new Array();
       snapshot.forEach(doc => {
-        item = doc.data();
+        let item = doc.data();
         item.id = doc.id;
         sources.push(item);
       });
