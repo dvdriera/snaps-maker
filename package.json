@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "firebase-admin": "^6.1.0",
-    "moment": "^2.20.1",
+    "moment": "^2.29.4",
     "mysql": "^2.15.0",
     "nightmare": "^3.0.1",
     "puppeteer": "^3.0.4",
